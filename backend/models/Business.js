@@ -18,9 +18,10 @@ const BusinessSchema = new mongoose.Schema({
   location: { 
     address: { type: String },
     coordinates: {
-      latitude: { type: Number },
-      longitude: { type: Number }
-    }
+      type: [Number],  // [longitude, latitude]
+      index: '2dsphere'
+}
+
   },
   description: { type: String },
   rating: { type: Number, default: 0 },
