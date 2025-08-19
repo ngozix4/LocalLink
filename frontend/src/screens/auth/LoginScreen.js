@@ -23,6 +23,7 @@ export default function LoginScreen({ navigation }) {
       setIsLoading(true);
       await login(email, password);
     } catch (error) {
+      console.error("error login", error);
       Alert.alert('Login Failed', error.message);
     } finally {
       setIsLoading(false);

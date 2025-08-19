@@ -3,6 +3,27 @@ import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const BusinessCard = ({ business, onPress }) => {
+  // Helper function to display location
+  const renderLocation = () => {
+    if (!business.location) return 'No location specified';
+    
+    // Handle both old string format and new object format
+    if (typeof business.location === 'string') {
+      return business.location;
+    }
+    
+    // New location object format
+    if (business.location.address) {
+      return business.location.address;
+    }
+    
+    if (business.location.coordinates) {
+      return `${business.location.coordinates.latitude.toFixed(4)}, ${business.location.coordinates.longitude.toFixed(4)}`;
+    }
+    
+    return 'Location available';
+  };
+
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       {business.logo?.url ? (
@@ -15,19 +36,23 @@ const BusinessCard = ({ business, onPress }) => {
       
       <View style={styles.infoContainer}>
         <Text style={styles.businessName} numberOfLines={1}>{business.business_name}</Text>
-        <Text style={styles.businessType} numberOfLines={1}>{business.business_type}</Text>
+        <Text style={styles.businessType} numberOfLines={1}>
+          {business.business_type || 'No type specified'}
+        </Text>
         
         <View style={styles.locationContainer}>
           <Icon name="location-on" size={14} color="#666" />
           <Text style={styles.locationText} numberOfLines={1}>
-            {business.location || 'No location specified'}
+            {renderLocation()}
           </Text>
         </View>
       </View>
       
       <View style={styles.ratingContainer}>
         <Icon name="star" size={16} color="#FFD700" />
-        <Text style={styles.ratingText}>{business.rating?.toFixed(1) || 'N/A'}</Text>
+        <Text style={styles.ratingText}>
+          {business.rating ? business.rating.toFixed(1) : 'N/A'}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -52,6 +77,7 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     marginRight: 10,
+    resizeMode: 'contain',
   },
   logoPlaceholder: {
     width: 50,
@@ -94,6 +120,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 10,
+    minWidth: 40,
   },
   ratingText: {
     marginLeft: 3,

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
+
 const API_BASE_URL = "https://locallink-lxzp.onrender.com";
 
 const api = axios.create({
@@ -9,6 +10,14 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use(async (config) => {
+  const publicEndpoints = [
+    '/api/businesses',
+    '/api/businesses/nearby'
+  ];
+
+   if (publicEndpoints.some(endpoint => config.url.includes(endpoint))) {
+    return config;
+  }
   const token = await SecureStore.getItemAsync('apiuserToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -16,30 +25,68 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// Updated searchBusinesses with location support
 export const searchBusinesses = async (queryParams = {}) => {
   try {
-    const response = await api.get('/api/businesses', { params: queryParams });
+    // If location coordinates are provided, use the nearby endpoint
+    if (queryParams.latitude && queryParams.longitude) {
+      const response = await api.get('/api/businesses/nearby', {
+        params: {
+          lat: queryParams.latitude,
+          lng: queryParams.longitude,
+          radius: queryParams.radius || 10000 // Default 10km radius
+        }
+      });
+      return response.data;
+    }
+    
+    // Otherwise use regular search
+    const response = await api.get('/api/businesses', { 
+      params: queryParams 
+    });
     return response.data;
   } catch (error) {
     throw error.response?.data?.error || error.message;
   }
 };
 
-export const getBusinessById = async (token, businessId) => {
+// New function to get businesses near current location
+export const getNearbyBusinesses = async (latitude, longitude, radius = 10000) => {
   try {
-    console.log("In the api getById",businessId);
-    const response = await api.get(`/api/businesses/${businessId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
+    console.log('Making nearby request with:', { latitude, longitude, radius });
+    
+    const response = await api.get('/api/businesses/nearby', {
+      params: { 
+        lat: latitude, 
+        lng: longitude, 
+        radius 
       },
-    }
-    );
+      // Explicitly skip auth if needed
+      skipAuth: true
+    });
+    
+    console.log('Nearby businesses response:', response.data.length);
     return response.data;
   } catch (error) {
-    console.error("Error here my bud:", error);
+    console.error("Failed to get nearby businesses", {
+      error: error.message,
+      response: error.response?.data,
+      config: error.config
+    });
     throw error.response?.data?.error || error.message;
   }
 };
+// Updated getBusinessById to include full location data
+export const getBusinessById = async (businessId) => {
+  try {
+    const response = await api.get(`/api/businesses/${businessId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error getting business:", error);
+    throw error.response?.data?.error || error.message;
+  }
+};
+
 
 export const registerBusiness = async (businessData) => {
   try {
@@ -354,5 +401,14 @@ export const getUnreadNotifications = async (businessId) => {
   } catch (error) {
     throw error.response?.data?.error || error.message;
   }
+};
+
+export const getCurrentLocation = async () => {
+  // This is a mock implementation returning Johannesburg coordinates
+  return {
+    latitude: -26.2041,
+    longitude: 28.0473,
+    city: 'Johannesburg'
+  };
 };
 
