@@ -21,6 +21,32 @@ const authenticate = async (req, res, next) => {
   }
 };
 
+router.get('/nearby', async (req, res) => {
+  try {
+    const { lat, lng, radius = 10000 } = req.query; // Default 10km radius
+    
+    if (!lat || !lng) {
+      return res.status(400).json({ error: 'Latitude and longitude are required' });
+    }
+    
+    const businesses = await Business.find({
+      'location.coordinates': {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [parseFloat(lng), parseFloat(lat)]
+          },
+          $maxDistance: parseInt(radius)
+        }
+      }
+    });
+    
+    res.json(businesses);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // Add logo to business
 router.post('/:id/logo', 
   authenticate,
@@ -186,31 +212,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Add this new route for getting businesses by location
-router.get('/nearby', async (req, res) => {
-  try {
-    const { lat, lng, radius = 10000 } = req.query; // Default 10km radius
-    
-    if (!lat || !lng) {
-      return res.status(400).json({ error: 'Latitude and longitude are required' });
-    }
-    
-    const businesses = await Business.find({
-      'location.coordinates': {
-        $near: {
-          $geometry: {
-            type: "Point",
-            coordinates: [parseFloat(lng), parseFloat(lat)]
-          },
-          $maxDistance: parseInt(radius)
-        }
-      }
-    });
-    
-    res.json(businesses);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
+
 
 module.exports = router;
