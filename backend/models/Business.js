@@ -1,21 +1,27 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-
 const BusinessSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-   images: [{
+  images: [{
     public_id: String,
     url: String,
     altText: String
   }],
   logo: {
     public_id: String,
-    url: String},
+    url: String
+  },
   business_name: { type: String, required: true },
   business_type: { type: String },
-  location: { type: String },
+  location: { 
+    address: { type: String },
+    coordinates: {
+      latitude: { type: Number },
+      longitude: { type: Number }
+    }
+  },
   description: { type: String },
   rating: { type: Number, default: 0 },
   created_at: { type: Date, default: Date.now },

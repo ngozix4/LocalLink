@@ -150,14 +150,14 @@ router.put('/:id', authenticate, async (req, res) => {
   }
 });
 
-// Search businesses
+// search route to handle location queries
 router.get('/', async (req, res) => {
   try {
-    const { business_type, location, search } = req.query;
+    const { business_type, city, search, lat, lng, radius } = req.query;
     const query = {};
     
     if (business_type) query.business_type = business_type;
-    if (location) query.location = { $regex: location, $options: 'i' };
+    if (city) query['location.address'] = { $regex: city, $options: 'i' };
     if (search) {
       query.$or = [
         { business_name: { $regex: search, $options: 'i' } },
@@ -165,7 +165,48 @@ router.get('/', async (req, res) => {
       ];
     }
     
+    // Handle geographic search
+    if (lat && lng && radius) {
+      const maxDistance = parseInt(radius) || 10000; // Default 10km radius
+      query['location.coordinates'] = {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [parseFloat(lng), parseFloat(lat)]
+          },
+          $maxDistance: maxDistance
+        }
+      };
+    }
+    
     const businesses = await Business.find(query);
+    res.json(businesses);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Add this new route for getting businesses by location
+router.get('/nearby', async (req, res) => {
+  try {
+    const { lat, lng, radius = 10000 } = req.query; // Default 10km radius
+    
+    if (!lat || !lng) {
+      return res.status(400).json({ error: 'Latitude and longitude are required' });
+    }
+    
+    const businesses = await Business.find({
+      'location.coordinates': {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [parseFloat(lng), parseFloat(lat)]
+          },
+          $maxDistance: parseInt(radius)
+        }
+      }
+    });
+    
     res.json(businesses);
   } catch (error) {
     res.status(400).json({ error: error.message });
